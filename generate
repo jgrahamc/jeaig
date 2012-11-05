@@ -1,0 +1,36 @@
+# generate - generate the encrypted email address
+#
+# Copyright (c) 2012 John Graham-Cumming
+
+use strict;
+use warnings;
+
+use Crypt::CBC;
+use MIME::Base64;
+
+my $address = $ARGV[0];
+my $extra = 16 + rand(24);
+
+my $before = int( $extra / 2 );
+my $after = $extra - $before;
+
+my $before_pad = Crypt::CBC->_get_random_bytes( $before - 1 );
+my $after_pad  = Crypt::CBC->_get_random_bytes( $after  - 1 );
+
+$before_pad =~ s/ /0/g;
+$after_pad  =~ s/ /0/g;
+
+# The path to the encryption key
+my $key = `cat /var/lib/jeaig/key`;
+my $b = new Crypt::CBC( -key    => $key,
+                        -header => 'randomiv',
+                        -cipher => 'Blowfish' );
+my $plain = "$before_pad $address $after_pad";
+my $secret = encode_base64( $b->encrypt( $plain ) );
+
+$secret =~ s/[\r\n]//g;
+$secret =~ s/\+/*/g;
+$secret =~ s/\//-/g;
+$secret =~ s/=+$//;
+
+print "$secret\n";

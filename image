@@ -1,0 +1,52 @@
+# image - create the obscured image containing the email address
+#
+# Copyright (c) 2012 John Graham-Cumming
+
+use strict;
+use warnings;
+
+use GD::SecurityImage;
+use GD::Text;
+
+my %format= (
+      name       => 'ellipse',
+      lines      => 4+rand(3), 
+      bgcolor    => [208, 202, 206],
+      text_color => [255,  255, 255],
+      line_color => [255,  255, 255],
+      particle   => 100,
+);
+
+my $address = $ARGV[0];
+
+if ( rand(1) < 0.5 ) {
+    $address =~ s/@/ at /;
+}
+if ( rand(1) < 0.5 ) {
+    $address =~ s/\./ dot /;
+}
+
+my $font = './VeraSe.ttf';
+my $points = 16;
+my $t = new GD::Text( text => $address, font => $font, ptsize => $points );
+my ( $width, $height ) = $t->get( 'width', 'height' );
+
+$width += 16;
+$height += 12;
+
+my $s = new GD::SecurityImage( width => $width,
+    height => $height, 
+    bgcolor => $format{bgcolor},
+    font => $font,
+    ptsize => $points,
+    lines => $format{lines} );
+
+$s->random( $address );
+$s->create( ttf => $format{name}, $format{text_color}, $format{line_color} );
+$s->particle( $format{particle} );
+
+my $crop = 12;
+my $final = new GD::Image( $width, $height - $crop );
+$final->copy( $s->raw, 0, 0, 0, $crop, $width, $height - $crop );
+
+print $final->png;

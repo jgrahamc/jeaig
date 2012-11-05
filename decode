@@ -1,0 +1,29 @@
+# decode - Decode the magic string embedded in the image URL to
+#          obtain the email address
+#
+# Copyright (c) 2012 John Graham-Cumming
+
+use strict;
+use warnings;
+
+use Crypt::CBC;
+use MIME::Base64;
+
+my $secret = $ARGV[0];
+
+my $key = `cat /var/lib/jeaig/key`;
+my $b = new Crypt::CBC( -key    => $key,
+                        -header => 'randomiv',
+                        -cipher => 'Blowfish' );
+
+$secret =~ s/\*/+/g;
+$secret =~ s/-/\//g;
+$secret = decode_base64( $secret );
+
+my $plain = $b->decrypt( $secret );
+
+$plain =~ s/^[^ ]+ //;
+$plain =~ s/ [^ ]+$//;
+
+print "$plain\n";
+
